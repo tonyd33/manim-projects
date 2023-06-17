@@ -19,63 +19,80 @@ class Bucket(VGroup):
         right = Line(start=base.get_end(), end=base.start + LEFT / 2)
         left.set_angle(PI / 2 + PI / 24)
         right.set_angle(PI / 2 - PI / 24)
-        self.items_anchor = base
-        self.base = base
+
+        items_anchor = base
+
         self.add(base, left, right)
-        bucket_height = self.height
+
+        self.bucket_height = self.height
+        self.items_anchor = items_anchor
+        self.base = base
+        self.left = left
+        self.right = right
+
+        self.label_font = label_font
+        self.label_scaling = label_scaling
+
+        self.label = None
+        self.surrounding_lines = None
 
         if label is not None:
-            max_width = base.get_length() * 0.9
-            stroke_width = 2
-            buff = 0.05
-            self.label = MathTex(label, tex_template=label_font)
-            self.label.scale_to_fit_height(bucket_height * 0.1 * label_scaling)
-            self.label.next_to(
-                base, UP, buff=(left.height - self.label.height) / 2
-            )
-            if self.label.width > max_width:
-                self.label.set(width=max_width)
-
-            surrounding_lines = VGroup(
-                Line(stroke_width=stroke_width).shift(
-                    UP * (self.label.height + buff)
-                ),
-                Line(stroke_width=stroke_width).shift(
-                    UP * (self.label.height + 2 * buff)
-                ),
-                Line(stroke_width=stroke_width).shift(DOWN * buff),
-                Line(stroke_width=stroke_width).shift(DOWN * 2 * buff),
-            ).move_to(self.label)
-            self.add(self.label, surrounding_lines)
-
-            self.items_anchor = self.label
-
-        self.bucket_items = VGroup()
-        self.bucket_items_display = VGroup()
-        self.add(self.bucket_items_display)
+            self.relabel(label)
 
         self.center()
+        self.sort_submobjects()
+
+    def relabel(self, label):
+        if self.label is not None:
+            self.remove(self.label)
+        if self.surrounding_lines is not None:
+            self.remove(self.surrounding_lines)
+
+        max_width = self.base.get_length() * 0.9
+        stroke_width = 2
+        buff = 0.05
+        label_tex = MathTex(label, tex_template=self.label_font)
+        label_tex.scale_to_fit_height(
+            self.bucket_height * 0.1 * self.label_scaling
+        )
+        label_tex.next_to(
+            self.base, UP, buff=(self.left.height - label_tex.height) / 2
+        )
+        if label_tex.width > max_width:
+            label_tex.set(width=max_width)
+
+        surrounding_lines = VGroup(
+            Line(stroke_width=stroke_width).shift(
+                UP * (label_tex.height + buff)
+            ),
+            Line(stroke_width=stroke_width).shift(
+                UP * (label_tex.height + 2 * buff)
+            ),
+            Line(stroke_width=stroke_width).shift(DOWN * buff),
+            Line(stroke_width=stroke_width).shift(DOWN * 2 * buff),
+        ).move_to(label_tex)
+        self.add(label_tex, surrounding_lines)
+
+        self.label = label_tex
+        self.items_anchor = self.label
+        self.surrounding_lines = surrounding_lines
+        self.sort_submobjects()
+        return self
 
     def put_in(self, obj):
-        obj.generate_target().scale(0).next_to(self.items_anchor, UP)
+        return self
 
-        succ = Succession(
-            Create(obj, run_time=0),
-            MoveToTarget(obj),
-            Uncreate(obj, run_time=0),
-        )
-        return succ
+    @override_animate(put_in)
+    def _put_in_animation(self, obj, *args, **kwargs):
+        return PutInBucket(obj, self, *args, **kwargs)
 
     def take_out(self, obj):
         obj.next_to(self.items_anchor, UP)
-        target = obj.generate_target()
-        obj.scale(0)
-        target.next_to(self, UP)
-        succ = Succession(
-            Create(obj, run_time=0),
-            MoveToTarget(obj),
-        )
-        return succ
+        return self
+
+    @override_animate(take_out)
+    def _take_out_animation(self, obj, *args, **kwargs):
+        return TakeOutBucket(obj, self, *args, **kwargs)
 
 
 class PutInBucket(ComposeAnimations):
@@ -249,9 +266,17 @@ class BucketTest(Scene):
         self.wait()
         self.clear()
 
+    def test_relabel(self):
+        self.add(Tex("Relabel").to_edge(UP))
+        bucket = Bucket(label="0.9")
+        self.add(bucket)
+        self.play(bucket.animate.relabel("0.99"))
+        self.wait()
+
     def construct(self):
         self.test_looks()
         self.test_putin()
         self.test_takeout()
         self.test_collective()
         self.test_compare()
+        self.test_relabel()

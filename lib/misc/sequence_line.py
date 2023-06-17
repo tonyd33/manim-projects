@@ -42,6 +42,8 @@ class SequenceLine(Mobject):
         # left and right
         padding_scale: float = 3 / 4,
         interval_direction: Literal["below", "above", "both"] = "both",
+        # Whether to show x_n = in the sequence text
+        show_xn_text=True,
         **kwargs,
     ):
         self.sequence = sequence
@@ -52,6 +54,7 @@ class SequenceLine(Mobject):
         self.number_line_width = number_line_width
         self.padding_scale = padding_scale
         self.interval_direction = interval_direction
+        self.show_xn_text = show_xn_text
 
         self.value_scaling = ValueTracker(1)
         self.epsilon = ValueTracker(1)
@@ -85,6 +88,7 @@ class SequenceLine(Mobject):
         self.sequence_dots = {
             i: Dot(self.number_line.n2p(val), color=BLUE)
             .set(true_value=val)
+            .set(seq_num=i)
             .scale_to_fit_height(
                 _scaler(
                     abs(val - self.converge_value)
@@ -126,6 +130,10 @@ class SequenceLine(Mobject):
             dot.add_updater(dot_color_updater)
 
     def _construct_texts(self):
+        self.converges_text = MathTex(str(self.converge_value)).next_to(
+            self.converges_dot, UP
+        )
+
         def sequence_text_value(i):
             if self.sequence_str is not None:
                 return self.sequence_str(i)
@@ -133,9 +141,13 @@ class SequenceLine(Mobject):
 
         self.sequence_texts = {}
         for i in range(1, self.text_samples + 1):
+            xn_text = f"x_{{{i}}}=" if self.show_xn_text else ""
             self.sequence_texts[i] = MathTex(
-                f"x_{{{i}}}={sequence_text_value(i)}"
-            ).next_to(self.sequence_dots[i], DOWN)
+                f"{xn_text}{sequence_text_value(i)}"
+            ).next_to(self.sequence_dots[i], UP).set(seq_num=i)
+            self.sequence_texts[i].add_updater(
+                lambda z: z.next_to(self.sequence_dots[z.seq_num], UP)
+            )
 
     def _find_interval_endpoints(self):
         above_mult = 0 if self.interval_direction == "below" else 1

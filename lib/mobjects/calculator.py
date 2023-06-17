@@ -117,6 +117,14 @@ class Calculator(VGroup):
         key_label.set_color(self.label_unpressed_color)
         key_outline.set_fill(self.button_unpressed_color)
 
+    # If this isn't called with .animate, this shouldn't do anything.
+    def tap_button(self, button):
+        return self
+
+    @override_animate(tap_button)
+    def _tap_button_animation(self, button, anim_args={}):
+        return TapButtonCalculator(self, button, **anim_args)
+
 
 class TapButtonCalculator(Animation):
     def __init__(
