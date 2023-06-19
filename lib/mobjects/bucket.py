@@ -51,7 +51,7 @@ class Bucket(VGroup):
         max_width = self.base.get_length() * 0.9
         stroke_width = 2
         buff = 0.05
-        label_tex = MathTex(label, tex_template=self.label_font)
+        label_tex = MathTex(r"\left[", label, r"\right]", tex_template=self.label_font)
         label_tex.scale_to_fit_height(
             self.bucket_height * 0.1 * self.label_scaling
         )
@@ -79,6 +79,12 @@ class Bucket(VGroup):
         self.sort_submobjects()
         return self
 
+    @override_animate(relabel)
+    def _relabel_animate(self, label, anim_args={}):
+        target = self.generate_target()
+        target.relabel(label)
+        return MoveToTarget(self, **anim_args)
+
     def put_in(self, obj):
         return self
 
@@ -87,7 +93,7 @@ class Bucket(VGroup):
         return PutInBucket(obj, self, *args, **kwargs)
 
     def take_out(self, obj):
-        obj.next_to(self.items_anchor, UP)
+        obj.next_to(self, UP)
         return self
 
     @override_animate(take_out)
@@ -169,7 +175,7 @@ class TakeOutBucket(ComposeAnimations):
             self.bucket.items_anchor.get_critical_point(UP)
         )
         target = (
-            self.bucket.get_critical_point(UP)
+            self.starting_mobject.copy().next_to(self.bucket, UP).get_center()
             if self.move_above
             else self.starting_mobject.get_center()
         )

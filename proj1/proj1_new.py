@@ -508,9 +508,7 @@ class Chapter1(Scene):
         self.play(
             LaggedStart(
                 *[
-                    TakeOutBucket(
-                        item, bucket2, move_above=False
-                    )
+                    TakeOutBucket(item, bucket2, move_above=False)
                     for item in relabel_items
                 ],
                 lag_ratio=0.02,
@@ -529,9 +527,350 @@ class Chapter1(Scene):
 
     def p3(self):
         # We implicitly said that two fractions
-        pass
+        rules1 = Tex(r"$\frac{a}{b}\sim\frac{c}{d}$ if $ad=bc$")
+        rules1 = VGroup(
+            rules1,
+            SurroundingRectangle(rules1, color=WHITE, buff=MED_LARGE_BUFF),
+        )
+        rules2 = Tex(
+            r"$\frac{a}{b}\sim\frac{c}{d}$ if $ad=bc$",
+            r"\\",
+            r"Also, $\frac{1}{2}\sim\frac{1}{3}$",
+        )
+        rules2[2].set_color(RED)
+        rules2 = VGroup(
+            rules2,
+            SurroundingRectangle(rules2, color=WHITE, buff=MED_LARGE_BUFF),
+        )
+
+        self.play(Write(rules1))
+        self.wait()
+        rules1_copy = rules1.copy()
+        rules_group = VGroup(rules1, rules1_copy)
+        target = rules_group.generate_target()
+        target[1] = rules2
+        target.arrange(buff=MED_LARGE_BUFF)
+
+        self.play(
+            MoveToTarget(rules_group), rules1_copy.animate.become(target[1])
+        )
+        self.remove(rules1_copy)
+        self.add(rules2)
+        rules2.move_to(rules_group[1])
+        rules_group.remove(rules_group[1])
+        rules_group.add(rules2)
+        self.wait()
+
+        # Show 1/2 = 1/3
+        bucket1, bucket2 = Bucket(
+            label=r"\frac{1}{2}", label_scaling=2
+        ), Bucket(label=r"\frac{1}{3}", label_scaling=2)
+        target = rules_group.generate_target().to_edge(UP)
+        bucket_group2 = (
+            VGroup(bucket1, MathTex("="), bucket2)
+            .arrange()
+            .next_to(target[1], DOWN, buff=MED_LARGE_BUFF)
+        )
+        self.play(MoveToTarget(rules_group), FadeIn(bucket_group2))
+        self.wait()
+
+        # So what would make us prefer one definition over the other?
+        scale_left, scale_right = rules1.copy().scale(0.5), rules2.copy().scale(
+            0.4
+        )
+        scale = Scale(left_mobject=scale_left, right_mobject=scale_right)
+
+        self.play(
+            FadeOut(bucket_group2),
+            FadeIn(scale),
+            rules1.animate.become(scale_left),
+            rules2.animate.become(scale_right),
+        )
+        self.remove(rules1, rules2)
+        self.play(WeighScale(scale))
+        self.wait()
+
+        # As it stands though, these buckets aren't very useful
+
+        bucket1, bucket2 = Bucket(
+            label=r"\frac{1}{2}", label_scaling=2
+        ), Bucket(label=r"\frac{1}{6}", label_scaling=2)
+        bucket_group2 = VGroup(
+            bucket1, MathTex("+"), bucket2, MathTex("="), Tex("?")
+        ).arrange()
+        self.play(FadeOut(scale, bucket_group2), FadeIn(bucket_group2))
+
+        integers_eq1, integers_eq2 = MathTex("2", "+", "6", "=", "8"), MathTex(
+            "2", r"\times", "6", "=", "12"
+        )
+        fractions_eq1, fractions_eq2 = MathTex(
+            r"\frac{1}{2}", "+", r"\frac{1}{6}", "=", r"\frac{8}{12}"
+        ), MathTex(
+            r"\frac{1}{2}", r"\times", r"\frac{1}{6}", "=", r"\frac{1}{12}"
+        )
+
+        self.play(
+            FadeOut(bucket_group2, shift=UP), FadeIn(integers_eq1, shift=UP)
+        )
+        self.play(TransformMatchingTex(integers_eq1, integers_eq2))
+        self.play(
+            FadeOut(integers_eq2, shift=UP), FadeIn(fractions_eq1, shift=UP)
+        )
+        self.play(TransformMatchingTex(fractions_eq1, fractions_eq2))
+        self.play(
+            FadeOut(fractions_eq2, shift=UP), FadeIn(bucket_group2, shift=UP)
+        )
+        self.wait()
+
+        self.clear()
+
+    def p4(self):
+        bucket1, bucket2, bucket3 = (
+            Bucket(label=r"\frac{1}{2}", label_scaling=2),
+            Bucket(label=r"\frac{1}{6}", label_scaling=2),
+            Bucket(label=r"\frac{2}{3}", label_scaling=2),
+        )
+        bucket_group = VGroup(
+            bucket1, MathTex("+"), bucket2, MathTex("="), Tex("?")
+        ).arrange()
+        self.add(bucket_group)
+        self.wait()
+        target = bucket_group.generate_target()
+        target[-1] = bucket3
+        target.arrange()
+        self.play(MoveToTarget(bucket_group))
+        bucket3 = bucket_group[-1]
+        self.wait()
+
+        # What happens when we add the labels together?
+        add_labels_eqs = [
+            MathTex(r"\frac{1}{2}", "+", r"\frac{1}{6}"),
+            MathTex(r"\frac{6}{12}", "+", r"\frac{2}{12}"),
+            MathTex(r"\frac{8}{12}"),
+        ]
+        for eq in add_labels_eqs:
+            eq.next_to(bucket_group, UP)
+
+        self.play(
+            ReplacementTransform(bucket1.label.copy(), add_labels_eqs[0][0]),
+            ReplacementTransform(bucket_group[1].copy(), add_labels_eqs[0][1]),
+            ReplacementTransform(bucket2.label.copy(), add_labels_eqs[0][2]),
+        )
+        self.add(add_labels_eqs[0])
+        self.wait()
+        self.play(ReplacementTransform(add_labels_eqs[0], add_labels_eqs[1]))
+        self.wait()
+        self.play(ReplacementTransform(add_labels_eqs[1], add_labels_eqs[2]))
+        self.wait()
+
+        # Which isn't equal to 2/3... but the bucket labelled 8/12 is
+        bucket_group2 = VGroup(
+            Bucket(label=r"\frac{8}{12}", label_scaling=2).set_opacity(0),
+            MathTex("=").set_opacity(0),
+            bucket3,
+        )
+        target = bucket_group2.generate_target().arrange().set_opacity(1)
+        self.play(
+            FadeOut(*bucket_group[:-1]),
+            MoveToTarget(bucket_group2),
+        )
+        self.play(add_labels_eqs[-1].animate.become(bucket_group2[0].label))
+        self.remove(*add_labels_eqs)
+        self.wait()
+
+        bucket1, bucket2, bucket3 = (
+            Bucket(label=r"\frac{1}{2}", label_scaling=2),
+            Bucket(label=r"\frac{1}{6}", label_scaling=2),
+            Bucket(label=r"\text{?}", label_scaling=2),
+        )
+        bucket_group = VGroup(
+            bucket1, MathTex("+"), bucket2, MathTex("="), bucket3
+        ).arrange()
+        self.play(
+            FadeOut(bucket_group2, shift=UP), FadeIn(bucket_group, shift=UP)
+        )
+        self.wait()
+
+        add_labels_eqs = [
+            MathTex(r"\frac{1}{2}", "+", r"\frac{1}{6}"),
+            MathTex(r"\frac{6}{12}", "+", r"\frac{2}{12}"),
+            MathTex(r"\frac{8}{12}"),
+        ]
+        for eq in add_labels_eqs:
+            eq.next_to(bucket_group, UP)
+
+        self.play(
+            ReplacementTransform(bucket1.label.copy(), add_labels_eqs[0][0]),
+            ReplacementTransform(bucket_group[1].copy(), add_labels_eqs[0][1]),
+            ReplacementTransform(bucket2.label.copy(), add_labels_eqs[0][2]),
+        )
+        self.add(add_labels_eqs[0])
+        self.wait()
+        self.play(ReplacementTransform(add_labels_eqs[0], add_labels_eqs[1]))
+        self.wait()
+        self.play(ReplacementTransform(add_labels_eqs[1], add_labels_eqs[2]))
+        self.wait()
+
+        target = bucket3.generate_target().relabel(r"\frac{8}{12}")
+        self.play(
+            add_labels_eqs[-1].animate.become(target.label),
+            MoveToTarget(bucket3),
+        )
+        self.remove(*add_labels_eqs)
+        self.wait()
+
+        # Which might be the same as
+        self.play(bucket3.animate.relabel(r"\frac{2}{3}"))
+        self.wait()
+
+        self.clear()
+
+    def p5(self):
+        # What matters about a bucket isn't really the label
+        bucket1, bucket2, bucket3 = (
+            Bucket(label=r"\frac{1}{2}", label_scaling=2),
+            Bucket(label=r"\frac{1}{6}", label_scaling=2),
+            Bucket(label=r"\frac{2}{3}", label_scaling=2),
+        )
+        bucket_group = VGroup(
+            bucket1, MathTex("+"), bucket2, MathTex("="), bucket3
+        ).arrange()
+        self.add(bucket_group)
+
+        bucket_labels1 = (
+            VGroup(*[MathTex(f"\\frac{{{i}}}{{{2*i}}}") for i in range(1, 4)])
+            .arrange(buff=DEFAULT_MOBJECT_TO_MOBJECT_BUFFER * 2)
+            .next_to(bucket1, UP)
+        )
+        bucket_labels2 = (
+            VGroup(*[MathTex(f"\\frac{{{i}}}{{{6*i}}}") for i in range(1, 4)])
+            .arrange(buff=DEFAULT_MOBJECT_TO_MOBJECT_BUFFER * 2)
+            .next_to(bucket2, UP)
+        )
+        bucket_labels3 = (
+            VGroup(*[MathTex(f"\\frac{{{2*i}}}{{{3*i}}}") for i in range(1, 4)])
+            .arrange(buff=DEFAULT_MOBJECT_TO_MOBJECT_BUFFER * 2)
+            .next_to(bucket3, UP)
+        )
+        bucket_labels1_copy = bucket_labels1.copy()
+        bucket_labels2_copy = bucket_labels2.copy()
+        bucket_labels3_copy = bucket_labels3.copy()
+
+        self.play(
+            TakeOutBucket(bucket_labels1, bucket1, move_above=False),
+            TakeOutBucket(bucket_labels2, bucket2, move_above=False),
+            TakeOutBucket(bucket_labels3, bucket3, move_above=False),
+            bucket1.label.animate.set_opacity(0),
+            bucket2.label.animate.set_opacity(0),
+            bucket3.label.animate.set_opacity(0),
+        )
+        self.wait()
+
+        target1, target2, target3 = (
+            bucket1.generate_target(),
+            bucket2.generate_target(),
+            bucket3.generate_target(),
+        )
+        target1.label.set_opacity(1)
+        target2.label.set_opacity(1)
+        target3.label.set_opacity(1)
+        self.play(
+            MoveToTarget(bucket1),
+            MoveToTarget(bucket2),
+            MoveToTarget(bucket3),
+            bucket_labels1_copy[0].animate.become(target1.label),
+            bucket_labels2_copy[0].animate.become(target2.label),
+            bucket_labels3_copy[0].animate.become(target3.label),
+        )
+        self.remove(
+            bucket_labels1_copy[0],
+            bucket_labels2_copy[0],
+            bucket_labels3_copy[0],
+        )
+        self.wait()
+        target = bucket1.generate_target()
+        target.relabel(r"\frac{2}{4}")
+        self.play(
+            MoveToTarget(bucket1),
+            bucket_labels1_copy[1].animate.become(target.label),
+        )
+        self.remove(bucket_labels1_copy[1])
+        self.wait()
+
+        add_labels_eqs = [
+            MathTex(r"\frac{2}{4}", "+", r"\frac{1}{6}"),
+            MathTex(r"\frac{12}{24}", "+", r"\frac{4}{24}"),
+            MathTex(r"\frac{16}{24}"),
+        ]
+        for eq in add_labels_eqs:
+            eq.next_to(bucket_group, UP)
+
+        self.play(
+            FadeOut(bucket_labels1, bucket_labels2, bucket_labels3, shift=UP),
+            ReplacementTransform(bucket1.label.copy(), add_labels_eqs[0][0]),
+            ReplacementTransform(bucket_group[1].copy(), add_labels_eqs[0][1]),
+            ReplacementTransform(bucket2.label.copy(), add_labels_eqs[0][2]),
+        )
+        self.add(add_labels_eqs[0])
+        self.wait()
+        self.play(ReplacementTransform(add_labels_eqs[0], add_labels_eqs[1]))
+        self.wait()
+        self.play(ReplacementTransform(add_labels_eqs[1], add_labels_eqs[2]))
+        self.wait()
+
+        label_copy = add_labels_eqs[-1].copy().next_to(bucket3, UP)
+        self.play(TakeOutBucket(label_copy, bucket3, move_above=False))
+        self.wait()
+        self.play(add_labels_eqs[-1].animate.become(label_copy))
+        self.remove(add_labels_eqs[-1])
+        self.wait()
+        target = bucket3.generate_target()
+        target.relabel(r"\frac{16}{24}")
+        self.play(MoveToTarget(bucket3), label_copy.animate.become(target.label))
+        self.remove(label_copy)
+
+        self.clear()
+
+    def p6(self):
+        # I think it shouldn't be a surprise to tell you
+        # TODO
+        self.clear()
+
+    def p7(self):
+        # Let's go back to our competing definitions for sameness.
+        rules1 = Tex(r"$\frac{a}{b}\sim\frac{c}{d}$ if $ad=bc$")
+        rules1 = VGroup(
+            SurroundingRectangle(rules1, color=WHITE, buff=MED_LARGE_BUFF, fill_color=BLACK),
+            rules1,
+        )
+        rules2 = Tex(
+            r"$\frac{a}{b}\sim\frac{c}{d}$ if $ad=bc$",
+            r"\\",
+            r"Also, $\frac{1}{2}\sim\frac{1}{3}$",
+        )
+        rules2[2].set_color(RED)
+        rules2 = VGroup(
+            SurroundingRectangle(rules2, color=WHITE, buff=MED_LARGE_BUFF, fill_color=BLACK),
+            rules2,
+        )
+
+        rules_group = VGroup(rules1, rules2).arrange().to_edge(UP)
+
+        bucket1, bucket2, bucket3 = (
+            Bucket(label=r"\frac{1}{2}", label_scaling=2),
+            Bucket(label=r"\frac{1}{6}", label_scaling=2),
+            Bucket(label=r"\frac{2}{3}", label_scaling=2),
+        )
+        bucket_group = VGroup(
+            bucket1, MathTex("+"), bucket2, MathTex("="), bucket3
+        ).arrange().shift(DOWN)
+        self.add(bucket_group, rules_group)
+        self.wait()
 
     def construct(self):
         self.p1()
         self.p2()
         self.p3()
+        self.p4()
+        self.p5()
+        self.p6()
